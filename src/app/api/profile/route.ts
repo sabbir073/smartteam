@@ -7,6 +7,7 @@ import { z } from "zod";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(100).optional(),
+  email: z.string().email().optional(),
   current_password: z.string().optional(),
   new_password: z.string().min(6).optional(),
 });
@@ -47,10 +48,25 @@ export async function PATCH(request: NextRequest) {
   const parsed = updateSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Invalid data", details: parsed.error.flatten() }, { status: 400 });
 
-  const { name, current_password, new_password } = parsed.data;
+  const { name, email, current_password, new_password } = parsed.data;
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
   if (name) update.name = name;
+
+  // Email change — check for duplicates
+  if (email) {
+    const { data: existing } = await supabase
+      .from("users")
+      .select("id")
+      .eq("email", email)
+      .neq("id", session.user.id)
+      .single();
+
+    if (existing) {
+      return NextResponse.json({ error: "Email already in use" }, { status: 409 });
+    }
+    update.email = email;
+  }
 
   // Password change requires current password verification
   if (new_password) {

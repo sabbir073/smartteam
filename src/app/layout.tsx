@@ -19,6 +19,12 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "SmartTeam - Management Platform",
   description: "SmartLab Internal Management Platform",
+  icons: {
+    icon: [
+      { url: "/icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/apple-icon.svg",
+  },
 };
 
 export default function RootLayout({

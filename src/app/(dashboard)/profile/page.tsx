@@ -22,6 +22,7 @@ export default function ProfilePage() {
 
   // Editable fields
   const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -34,6 +35,7 @@ export default function ProfilePage() {
         if (j.data) {
           setProfile(j.data);
           setName(j.data.name || "");
+          setEmail(j.data.email || "");
           setAvatarUrl(j.data.avatar_url || "");
         }
       })
@@ -43,10 +45,15 @@ export default function ProfilePage() {
 
   async function handleSaveProfile() {
     if (!name.trim()) { toast.error("Name is required"); return; }
+    if (!email.trim()) { toast.error("Email is required"); return; }
 
     setSaving(true);
     try {
-      const payload: Record<string, string> = { name };
+      const payload: Record<string, string> = {};
+      if (name !== (profile?.name as string)) payload.name = name;
+      if (email !== (profile?.email as string)) payload.email = email;
+
+      if (Object.keys(payload).length === 0) { toast.info("No changes"); setSaving(false); return; }
 
       const res = await fetch("/api/profile", {
         method: "PATCH",
@@ -55,9 +62,9 @@ export default function ProfilePage() {
       });
 
       if (res.ok) {
-        toast.success("Profile updated");
-        // Update session name
+        toast.success("Profile updated. Refreshing session...");
         await updateSession({ name });
+        window.location.reload();
       } else {
         const j = await res.json();
         toast.error(j.error || "Failed to update");
@@ -113,17 +120,10 @@ export default function ProfilePage() {
         <Card className="shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base">Account Information</CardTitle>
-            <CardDescription>Your account details managed by admin</CardDescription>
+            <CardDescription>Role and company ID are managed by admin</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
-                <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-xs text-muted-foreground">Email</p>
-                  <p className="text-sm font-medium truncate">{profile?.email as string}</p>
-                </div>
-              </div>
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
                 <Shield className="h-4 w-4 text-muted-foreground shrink-0" />
                 <div className="min-w-0">
@@ -164,24 +164,33 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Edit Name */}
+        {/* Personal Info */}
         <Card className="shadow-sm">
           <CardHeader className="pb-4">
             <CardTitle className="text-base">Personal Information</CardTitle>
-            <CardDescription>Update your display name</CardDescription>
+            <CardDescription>Update your name and email</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2 max-w-sm">
-              <Label>Full Name</Label>
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label>Full Name</Label>
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Email</Label>
+                <div className="flex items-center gap-2">
+                  <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+                  <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@smartlab.com" />
+                </div>
               </div>
             </div>
-            <Button onClick={handleSaveProfile} disabled={saving || name === (profile?.name as string)}>
+            <Button onClick={handleSaveProfile} disabled={saving || (name === (profile?.name as string) && email === (profile?.email as string))}>
               {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               <Save className="mr-2 h-4 w-4" />
-              Update Name
+              Update Profile
             </Button>
           </CardContent>
         </Card>
