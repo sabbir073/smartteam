@@ -18,7 +18,7 @@ export const authConfig: NextAuthConfig = {
 
       return true;
     },
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id as string;
         token.email = (user.email ?? "") as string;
@@ -26,6 +26,10 @@ export const authConfig: NextAuthConfig = {
         token.roleId = (user as unknown as Record<string, unknown>).roleId as string;
         token.roleName = (user as unknown as Record<string, unknown>).roleName as string;
         token.roleLevel = (user as unknown as Record<string, unknown>).roleLevel as number;
+      }
+      // Handle session updates (e.g., name change from profile page)
+      if (trigger === "update" && session) {
+        if (session.name) token.name = session.name;
       }
       return token;
     },

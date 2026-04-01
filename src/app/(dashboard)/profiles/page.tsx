@@ -209,6 +209,13 @@ export default function ProfilesPage() {
         )}
       </PageHeader>
 
+      {/* Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Profiles</div><div className="text-2xl font-bold">{profiles.length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Active</div><div className="text-2xl font-bold text-success">{profiles.filter(p => p.is_active).length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Disabled</div><div className="text-2xl font-bold text-muted-foreground">{profiles.filter(p => !p.is_active).length}</div></div>
+      </div>
+
       <DataTable columns={columns} data={profiles} loading={loading} emptyMessage="No platform profiles yet." />
 
       {/* Create/Edit Dialog */}

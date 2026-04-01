@@ -159,6 +159,16 @@
   }
 }
 
+/* ───── Global Cursor Pointer ───── */
+a,
+button,
+[role="button"],
+[role="tab"],
+[role="link"],
+[role="menuitem"] {
+  cursor: pointer !important;
+}
+
 /* ───── Modern Utility Classes ───── */
 .gradient-card {
   position: relative;

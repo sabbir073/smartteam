@@ -115,14 +115,12 @@ export default function InventoryPage() {
       </PageHeader>
 
       {/* Summary Cards */}
-      {items.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Items</div><div className="text-2xl font-bold">{items.length}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Active</div><div className="text-2xl font-bold text-success">{items.filter((i: Record<string, unknown>) => i.status === "active").length}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Under Repair</div><div className="text-2xl font-bold text-warning">{items.filter((i: Record<string, unknown>) => i.status === "under_repair").length}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Value</div><div className="text-2xl font-bold">${items.reduce((s: number, i: Record<string, unknown>) => s + Number(i.cost || 0), 0).toLocaleString()}</div></div>
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Items</div><div className="text-2xl font-bold">{items.length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Active</div><div className="text-2xl font-bold text-success">{items.filter((i: Record<string, unknown>) => i.status === "active").length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Under Repair</div><div className="text-2xl font-bold text-warning">{items.filter((i: Record<string, unknown>) => i.status === "under_repair").length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Value</div><div className="text-2xl font-bold">{formatCurrency(items.reduce((s: number, i: Record<string, unknown>) => s + Number(i.cost || 0), 0))}</div></div>
+      </div>
 
       <DataTable columns={columns} data={items} loading={loading} emptyMessage="No inventory items." />
 

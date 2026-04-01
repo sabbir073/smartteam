@@ -194,14 +194,12 @@ export default function OrdersPage() {
       </PageHeader>
 
       {/* Summary Cards */}
-      {orders.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Orders</div><div className="text-2xl font-bold">{total}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Revenue (Net)</div><div className="text-2xl font-bold text-success">{formatCurrency(orders.reduce((s, o) => s + Number(o.net_amount), 0))}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Avg. Order Value</div><div className="text-2xl font-bold">{formatCurrency(orders.reduce((s, o) => s + Number(o.net_amount), 0) / orders.length)}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Gross</div><div className="text-2xl font-bold">{formatCurrency(orders.reduce((s, o) => s + Number(o.gross_amount), 0))}</div></div>
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Orders</div><div className="text-2xl font-bold">{total}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Revenue (after platform fee)</div><div className="text-2xl font-bold text-success">{formatCurrency(orders.reduce((s, o) => s + Number(o.net_amount), 0))}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Avg. Order Value</div><div className="text-2xl font-bold">{orders.length > 0 ? formatCurrency(orders.reduce((s, o) => s + Number(o.net_amount), 0) / orders.length) : "$0.00"}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Gross</div><div className="text-2xl font-bold">{formatCurrency(orders.reduce((s, o) => s + Number(o.gross_amount), 0))}</div></div>
+      </div>
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">

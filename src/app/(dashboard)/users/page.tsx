@@ -207,13 +207,11 @@ export default function UsersPage() {
       </PageHeader>
 
       {/* Summary Cards */}
-      {users.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Users</div><div className="text-2xl font-bold">{total}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Active</div><div className="text-2xl font-bold text-success">{users.filter(u => u.is_active).length}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Inactive</div><div className="text-2xl font-bold text-muted-foreground">{users.filter(u => !u.is_active).length}</div></div>
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Users</div><div className="text-2xl font-bold">{total}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Active</div><div className="text-2xl font-bold text-success">{users.filter(u => u.is_active).length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Inactive</div><div className="text-2xl font-bold text-muted-foreground">{users.filter(u => !u.is_active).length}</div></div>
+      </div>
 
       <DataTable
         columns={columns}

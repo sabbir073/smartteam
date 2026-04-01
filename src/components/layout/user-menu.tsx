@@ -16,10 +16,12 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
 } from "@/components/ui/sidebar";
-import { LogOut, ChevronsUpDown } from "lucide-react";
+import { LogOut, ChevronsUpDown, UserCog } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export function UserMenu() {
   const { data: session } = useSession();
+  const router = useRouter();
 
   if (!session?.user) return null;
 
@@ -74,6 +76,11 @@ export function UserMenu() {
                 </div>
               </DropdownMenuLabel>
             </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/profile")}>
+              <UserCog className="mr-2 h-4 w-4" />
+              Profile Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               onClick={() => signOut({ callbackUrl: "/login" })}

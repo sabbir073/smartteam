@@ -9,6 +9,7 @@ import {
   completeMultipartUpload,
   abortMultipartUpload,
   deleteFromS3,
+  getFileUrl,
 } from "@/lib/s3";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
 
@@ -94,7 +95,7 @@ export async function POST(
         })
       );
 
-      fileUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+      fileUrl = getFileUrl(key);
     }
 
     // Save file record

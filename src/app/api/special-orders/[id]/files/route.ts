@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { supabase } from "@/lib/db";
 import { checkPermission } from "@/lib/permissions";
-import { s3Client, S3_BUCKET, initiateMultipartUpload, completeMultipartUpload, abortMultipartUpload, deleteFromS3 } from "@/lib/s3";
+import { s3Client, S3_BUCKET, initiateMultipartUpload, completeMultipartUpload, abortMultipartUpload, deleteFromS3, getFileUrl } from "@/lib/s3";
 import { UploadPartCommand } from "@aws-sdk/client-s3";
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
@@ -50,7 +50,7 @@ export async function POST(
     } else {
       const { PutObjectCommand } = await import("@aws-sdk/client-s3");
       await s3Client.send(new PutObjectCommand({ Bucket: S3_BUCKET, Key: key, Body: Buffer.from(await file.arrayBuffer()), ContentType: contentType }));
-      fileUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+      fileUrl = getFileUrl(key);
     }
 
     const { data: record, error } = await supabase.from("special_order_files").insert({

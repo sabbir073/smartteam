@@ -31,7 +31,8 @@ export default function SpecialOrdersPage() {
   const [totalPages, setTotalPages] = useState(1);
   const [platformFilter, setPlatformFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [platforms, setPlatforms] = useState<{ id: string; name: string }[]>([]);
+  const [platforms, setPlatforms] = useState<{ id: string; name: string; bdt_conversion_rate?: number }[]>([]);
+  const [soCurrency, setSoCurrency] = useState({ code: "BDT", symbol: "৳" });
   const [statuses, setStatuses] = useState<{ id: string; name: string; color: string }[]>([]);
 
   const debouncedSearch = useDebounce(search, 300);
@@ -41,6 +42,9 @@ export default function SpecialOrdersPage() {
       fetch("/api/platforms").then((r) => r.json()),
       fetch("/api/order-statuses").then((r) => r.json()),
     ]).then(([p, s]) => { setPlatforms(p.data || []); setStatuses(s.data || []); }).catch(() => {});
+    fetch("/api/settings").then(r => r.json()).then(j => {
+      if (j.data?.so_currency_code) setSoCurrency({ code: String(j.data.so_currency_code).replace(/"/g, ""), symbol: String(j.data.so_currency_symbol || "৳").replace(/"/g, "") });
+    }).catch(() => {});
   }, []);
 
   const fetchOrders = useCallback(async () => {
@@ -105,14 +109,53 @@ export default function SpecialOrdersPage() {
       </PageHeader>
 
       {/* Summary Cards */}
-      {orders.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Special Orders</div><div className="text-2xl font-bold">{total}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Spent (Gross)</div><div className="text-2xl font-bold text-destructive">{formatCurrency(orders.reduce((s, o) => s + Number(o.gross_amount), 0))}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Net Cost</div><div className="text-2xl font-bold text-destructive">{formatCurrency(orders.reduce((s, o) => s + Number(o.net_amount), 0))}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Avg. Order Cost</div><div className="text-2xl font-bold">{formatCurrency(orders.reduce((s, o) => s + Number(o.gross_amount), 0) / orders.length)}</div></div>
-        </div>
-      )}
+      {(() => {
+        const toLocal = (o: SORow) => {
+          const pid = (o as Record<string, unknown>).platform_id as string;
+          const rate = platforms.find(p => p.id === pid)?.bdt_conversion_rate || 110;
+          return Number(o.gross_amount) * rate;
+        };
+        const sym = soCurrency.symbol;
+        const fmtLocal = (v: number) => `${sym}${v.toLocaleString("en", { maximumFractionDigits: 0 })}`;
+        const totalCostLocal = orders.reduce((s, o) => s + toLocal(o), 0);
+        const totalCostUSD = orders.reduce((s, o) => s + Number(o.gross_amount), 0);
+        const avgLocal = orders.length > 0 ? totalCostLocal / orders.length : 0;
+        const avgUSD = orders.length > 0 ? totalCostUSD / orders.length : 0;
+
+        return (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="stat-card">
+              <div className="text-sm text-muted-foreground">Total Special Orders</div>
+              <div className="text-2xl font-bold">{total}</div>
+            </div>
+            <div className="stat-card">
+              <div className="text-sm text-muted-foreground">Total Cost</div>
+              <div className="text-2xl font-bold text-destructive">{fmtLocal(totalCostLocal)}</div>
+              <p className="text-xs text-muted-foreground">{formatCurrency(totalCostUSD)} USD</p>
+            </div>
+            <div className="stat-card">
+              <div className="text-sm text-muted-foreground">Avg. Cost per Order</div>
+              <div className="text-2xl font-bold">{fmtLocal(avgLocal)}</div>
+              <p className="text-xs text-muted-foreground">{formatCurrency(avgUSD)} USD</p>
+            </div>
+            {(() => {
+              const feesLocal = orders.reduce((s, o) => {
+                const pid = (o as Record<string, unknown>).platform_id as string;
+                const rate = platforms.find(p => p.id === pid)?.bdt_conversion_rate || 110;
+                return s + (Number(o.gross_amount) - Number(o.net_amount)) * rate;
+              }, 0);
+              const feesUSD = totalCostUSD - orders.reduce((s, o) => s + Number(o.net_amount), 0);
+              return (
+                <div className="stat-card">
+                  <div className="text-sm text-muted-foreground">Platform Fees Paid</div>
+                  <div className="text-2xl font-bold text-muted-foreground">{fmtLocal(feesLocal)}</div>
+                  <p className="text-xs text-muted-foreground">{formatCurrency(feesUSD)} USD · Deducted by platforms</p>
+                </div>
+              );
+            })()}
+          </div>
+        );
+      })()}
 
       <div className="flex items-center gap-3 flex-wrap">
         <Select value={platformFilter} onValueChange={(v) => { setPlatformFilter(v === "all" ? "" : (v || "")); setPage(1); }} items={{ all: "All Platforms", ...Object.fromEntries(platforms.map(p => [p.id, p.name])) }}>

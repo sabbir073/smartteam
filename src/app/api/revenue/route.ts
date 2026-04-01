@@ -110,15 +110,8 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Get marketing costs for the period
-  const { data: costs } = await supabase
-    .from("marketing_costs")
-    .select("amount")
-    .gte("cost_date", startDate)
-    .lte("cost_date", endDate);
-
-  const totalCosts = (costs || []).reduce((s, c) => s + Number(c.amount), 0);
-  const profit = totalNet - totalCosts;
+  const totalCosts = 0;
+  const profit = totalNet;
 
   return NextResponse.json({
     data: {

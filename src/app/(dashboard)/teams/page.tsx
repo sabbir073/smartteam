@@ -147,13 +147,11 @@ export default function TeamsPage() {
       </PageHeader>
 
       {/* Summary Cards */}
-      {teams.length > 0 && (
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Total Teams</div><div className="text-2xl font-bold">{teams.length}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Sales Teams</div><div className="text-2xl font-bold text-primary">{teams.filter(t => t.type === "sales").length}</div></div>
-          <div className="stat-card"><div className="text-sm text-muted-foreground">Operations Teams</div><div className="text-2xl font-bold text-info">{teams.filter(t => t.type === "operations").length}</div></div>
-        </div>
-      )}
+      <div className="grid gap-4 sm:grid-cols-3">
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Teams</div><div className="text-2xl font-bold">{teams.length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Sales Teams</div><div className="text-2xl font-bold text-primary">{teams.filter(t => t.type === "sales").length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Operations Teams</div><div className="text-2xl font-bold text-info">{teams.filter(t => t.type === "operations").length}</div></div>
+      </div>
 
       {teams.length === 0 ? (
         <Card>

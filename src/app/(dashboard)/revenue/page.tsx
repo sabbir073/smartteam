@@ -2,12 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { PageHeader } from "@/components/shared/page-header";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
   SelectContent,
@@ -15,15 +10,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import { DataTable, Column } from "@/components/shared/data-table";
-import { DollarSign, TrendingUp, ShoppingCart, Minus, Plus, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
 import { RequirePermission } from "@/components/shared/require-permission";
@@ -45,8 +31,6 @@ interface RevenueSummary {
 
 interface BreakdownItem { name: string; gross: number; net: number; count: number; }
 interface TrendItem { month: string; gross: number; net: number; count: number; }
-interface CostRow { id: string; amount: number; description: string; cost_date: string; orders: { order_number: string } | null; added_by_user: { name: string } | null; [key: string]: unknown; }
-
 const COLORS = ["#3b82f6", "#22c55e", "#f59e0b", "#ef4444", "#8b5cf6", "#06b6d4"];
 
 export default function RevenuePage() {
@@ -58,13 +42,6 @@ export default function RevenuePage() {
   const [trend, setTrend] = useState<TrendItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Marketing costs
-  const [costs, setCosts] = useState<CostRow[]>([]);
-  const [costsLoading, setCostsLoading] = useState(true);
-  const [costDialogOpen, setCostDialogOpen] = useState(false);
-  const [costAmount, setCostAmount] = useState("");
-  const [costDesc, setCostDesc] = useState("");
-  const [costSaving, setCostSaving] = useState(false);
 
   const fetchRevenue = useCallback(async () => {
     setLoading(true);
@@ -81,63 +58,10 @@ export default function RevenuePage() {
     finally { setLoading(false); }
   }, [year]);
 
-  const fetchCosts = useCallback(async () => {
-    setCostsLoading(true);
-    try {
-      const res = await fetch("/api/marketing-costs");
-      if (res.ok) {
-        const json = await res.json();
-        setCosts(json.data || []);
-      }
-    } catch { /* ignore */ }
-    finally { setCostsLoading(false); }
-  }, []);
-
-  useEffect(() => { fetchRevenue(); fetchCosts(); }, [fetchRevenue, fetchCosts]);
-
-  async function handleAddCost() {
-    if (!costAmount) return;
-    setCostSaving(true);
-    try {
-      const res = await fetch("/api/marketing-costs", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: parseFloat(costAmount), description: costDesc }),
-      });
-      if (res.ok) {
-        toast.success("Cost added");
-        setCostDialogOpen(false);
-        setCostAmount("");
-        setCostDesc("");
-        fetchRevenue();
-        fetchCosts();
-      } else { const json = await res.json(); toast.error(json.error || "Failed"); }
-    } catch { toast.error("An error occurred"); }
-    finally { setCostSaving(false); }
-  }
+  useEffect(() => { fetchRevenue(); }, [fetchRevenue]);
 
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   const trendData = trend.map((t, i) => ({ ...t, name: monthNames[i] }));
-
-  const costColumns: Column<CostRow>[] = [
-    { key: "cost_date", header: "Date", render: (c) => <span>{c.cost_date}</span> },
-    { key: "amount", header: "Amount", render: (c) => <span className="font-medium">{formatCurrency(c.amount)}</span> },
-    { key: "description", header: "Description", render: (c) => <span className="text-muted-foreground">{c.description || "-"}</span> },
-    {
-      key: "order", header: "Order",
-      render: (c) => {
-        const o = Array.isArray(c.orders) ? c.orders[0] : c.orders;
-        return o ? <Badge variant="outline">{(o as Record<string, string>).order_number}</Badge> : <span>-</span>;
-      },
-    },
-    {
-      key: "added_by", header: "Added By",
-      render: (c) => {
-        const u = Array.isArray(c.added_by_user) ? c.added_by_user[0] : c.added_by_user;
-        return <span>{(u as Record<string, string>)?.name || "-"}</span>;
-      },
-    },
-  ];
 
   return (
     <RequirePermission module="revenue">
@@ -154,46 +78,31 @@ export default function RevenuePage() {
       </PageHeader>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-        {[
-          { label: "Gross Revenue", value: summary?.totalGross, icon: DollarSign, color: "" },
-          { label: "Platform Charges", value: summary?.totalCharges, icon: Minus, color: "text-destructive" },
-          { label: "Net Revenue", value: summary?.totalNet, icon: TrendingUp, color: "text-green-600" },
-          { label: "Marketing Costs", value: summary?.totalCosts, icon: Minus, color: "text-orange-600" },
-          { label: "Profit", value: summary?.profit, icon: DollarSign, color: (summary?.profit || 0) >= 0 ? "text-green-600" : "text-destructive" },
-        ].map((item) => (
-          <Card key={item.label}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">{item.label}</CardTitle>
-              <item.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              {loading ? <div className="h-7 w-24 bg-muted animate-pulse rounded" /> : (
-                <div className={`text-2xl font-bold ${item.color}`}>{formatCurrency(item.value || 0)}</div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stat-card">
+          <div className="text-sm text-muted-foreground">Gross Revenue</div>
+          {loading ? <div className="h-7 w-24 bg-muted animate-pulse rounded mt-1" /> : <div className="text-2xl font-bold">{formatCurrency(summary?.totalGross || 0)}</div>}
+        </div>
+        <div className="stat-card">
+          <div className="text-sm text-muted-foreground">Platform Charges</div>
+          {loading ? <div className="h-7 w-24 bg-muted animate-pulse rounded mt-1" /> : <div className="text-2xl font-bold text-destructive">{formatCurrency(summary?.totalCharges || 0)}</div>}
+        </div>
+        <div className="stat-card">
+          <div className="text-sm text-muted-foreground">Revenue (after platform fee)</div>
+          {loading ? <div className="h-7 w-24 bg-muted animate-pulse rounded mt-1" /> : <div className="text-2xl font-bold text-success">{formatCurrency(summary?.totalNet || 0)}</div>}
+        </div>
+        <div className="stat-card">
+          <div className="text-sm text-muted-foreground">Total Orders</div>
+          {loading ? <div className="h-7 w-24 bg-muted animate-pulse rounded mt-1" /> : (
+            <div>
+              <div className="text-2xl font-bold">{summary?.orderCount || 0}</div>
+              <p className="text-xs text-muted-foreground">Avg: {formatCurrency(summary?.avgOrderValue || 0)}</p>
+            </div>
+          )}
+        </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Total Orders</CardTitle><ShoppingCart className="h-4 w-4 text-muted-foreground" /></CardHeader>
-          <CardContent><div className="text-2xl font-bold">{loading ? "..." : summary?.orderCount || 0}</div></CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2"><CardTitle className="text-sm font-medium">Avg Order Value</CardTitle></CardHeader>
-          <CardContent><div className="text-2xl font-bold">{loading ? "..." : formatCurrency(summary?.avgOrderValue || 0)}</div></CardContent>
-        </Card>
-      </div>
-
-      <Tabs defaultValue="charts">
-        <TabsList>
-          <TabsTrigger value="charts">Charts</TabsTrigger>
-          <TabsTrigger value="costs">Marketing Costs</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="charts" className="space-y-6">
+      <div className="space-y-6">
           {/* Revenue Trend */}
           <Card>
             <CardHeader><CardTitle>Revenue Trend ({year})</CardTitle><CardDescription>Monthly gross and net revenue</CardDescription></CardHeader>
@@ -248,42 +157,7 @@ export default function RevenuePage() {
               </CardContent>
             </Card>
           </div>
-        </TabsContent>
-
-        <TabsContent value="costs" className="space-y-4">
-          <div className="flex justify-end">
-            {hasPermission("revenue", "create") && (
-              <Button size="sm" onClick={() => setCostDialogOpen(true)}>
-                <Plus className="mr-1 h-4 w-4" />Add Cost
-              </Button>
-            )}
-          </div>
-          <DataTable columns={costColumns} data={costs} loading={costsLoading} emptyMessage="No marketing costs recorded." />
-        </TabsContent>
-      </Tabs>
-
-      {/* Add Cost Dialog */}
-      <Dialog open={costDialogOpen} onOpenChange={setCostDialogOpen}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add Marketing Cost</DialogTitle></DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Amount (USD)</Label>
-              <Input type="number" min="0" step="0.01" value={costAmount} onChange={(e) => setCostAmount(e.target.value)} placeholder="0.00" />
-            </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Input value={costDesc} onChange={(e) => setCostDesc(e.target.value)} placeholder="What was this cost for?" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setCostDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleAddCost} disabled={costSaving || !costAmount}>
-              {costSaving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Add Cost
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </div>
     </div>
     </RequirePermission>
   );

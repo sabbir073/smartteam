@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { supabase } from "@/lib/db";
 import { checkPermission } from "@/lib/permissions";
-import { s3Client, S3_BUCKET, deleteFromS3 } from "@/lib/s3";
+import { s3Client, S3_BUCKET, deleteFromS3, getFileUrl } from "@/lib/s3";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 const MAX_SIZE = 5 * 1024 * 1024; // 5MB
@@ -59,7 +59,7 @@ export async function POST(
       })
     );
 
-    const avatarUrl = `https://${S3_BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    const avatarUrl = getFileUrl(key);
 
     // Update user record
     const { error: updateErr } = await supabase

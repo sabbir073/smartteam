@@ -23,6 +23,9 @@ export async function GET(
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  const perm = await checkPermission(session.user.id, "profiles", "view");
+  if (!perm.allowed) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
   const { data, error } = await supabase
     .from("platform_profiles")
     .select("*, platforms:platform_id(id, name)")

@@ -6,16 +6,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Download, ShoppingCart, DollarSign, Users, Star, Target, Package, FileText, FileSpreadsheet, File } from "lucide-react";
+import { Loader2, Download, ShoppingCart, DollarSign, Users, Star, Target, Package, FileText, FileSpreadsheet, File, UserCircle, ClipboardList } from "lucide-react";
 import { toast } from "sonner";
 import { usePermissions } from "@/hooks/use-permissions";
 import { RequirePermission } from "@/components/shared/require-permission";
 import { exportData } from "@/lib/export-utils";
-import { formatCurrency } from "@/lib/order-utils";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+function uw(v: any) { return Array.isArray(v) ? v[0] : v; }
 
 interface ReportType {
   id: string;
@@ -24,6 +23,7 @@ interface ReportType {
   icon: any;
   module: string;
   apiUrl: string;
+  supportsDateFilter: boolean;
   columns: { key: string; header: string; format?: (v: any) => string }[];
   dataExtractor: (data: any) => any[];
 }
@@ -32,96 +32,121 @@ const reportTypes: ReportType[] = [
   {
     id: "orders",
     title: "Orders Report",
-    description: "All orders with client, platform, amounts, status, and assignment details",
+    description: "Complete order details with assignments, platforms, amounts and status",
     icon: ShoppingCart,
     module: "orders",
-    apiUrl: "/api/orders?pageSize=500",
+    apiUrl: "/api/orders?pageSize=1000",
+    supportsDateFilter: true,
     columns: [
       { key: "order_number", header: "Order #" },
       { key: "order_date", header: "Date" },
-      { key: "client_name", header: "Client" },
+      { key: "employee_name", header: "Employee" },
+      { key: "employee_cid", header: "Emp ID" },
       { key: "platform_name", header: "Platform" },
       { key: "profile_name", header: "Profile" },
-      { key: "gross_amount", header: "Gross ($)", format: (v) => `$${Number(v).toFixed(2)}` },
-      { key: "platform_charge", header: "Fee ($)", format: (v) => `$${Number(v).toFixed(2)}` },
-      { key: "net_amount", header: "Net ($)", format: (v) => `$${Number(v).toFixed(2)}` },
+      { key: "client_name", header: "Client" },
+      { key: "external_order_id", header: "Platform Order ID" },
+      { key: "gross_amount", header: "Gross ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "platform_charge", header: "Platform Fee ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "net_amount", header: "Net ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
       { key: "status_name", header: "Status" },
-      { key: "employee_name", header: "Employee" },
       { key: "assigned_name", header: "Assigned To" },
-      { key: "deadline", header: "Deadline" },
+      { key: "team_name", header: "Team" },
+      { key: "department_name", header: "Department" },
+      { key: "service_name", header: "Service" },
+      { key: "service_line_name", header: "Service Line" },
+      { key: "deadline_fmt", header: "Deadline" },
+      { key: "delivery_time_fmt", header: "Delivery Time" },
     ],
-    dataExtractor: (data) => (data.data || []).map((o: any) => ({
-      ...o,
-      platform_name: (Array.isArray(o.platforms) ? o.platforms[0] : o.platforms)?.name || "",
-      profile_name: (Array.isArray(o.platform_profiles) ? o.platform_profiles[0] : o.platform_profiles)?.name || "",
-      status_name: (Array.isArray(o.order_statuses) ? o.order_statuses[0] : o.order_statuses)?.name || "",
-      employee_name: (Array.isArray(o.employee) ? o.employee[0] : o.employee)?.name || "",
-      assigned_name: (Array.isArray(o.assigned_user) ? o.assigned_user[0] : o.assigned_user)?.name || "",
-      deadline: o.deadline ? new Date(o.deadline).toLocaleDateString() : "",
-    })),
+    dataExtractor: (data) => (data.data || []).map((o: any) => {
+      const emp = uw(o.employee);
+      return {
+        ...o,
+        employee_name: emp?.name || "",
+        employee_cid: emp?.company_id || "",
+        platform_name: uw(o.platforms)?.name || "",
+        profile_name: uw(o.platform_profiles)?.name || "",
+        status_name: uw(o.order_statuses)?.name || "",
+        assigned_name: uw(o.assigned_user)?.name || "",
+        team_name: uw(o.teams)?.name || "",
+        department_name: uw(o.departments)?.name || "",
+        service_name: uw(o.service_categories)?.name || "",
+        service_line_name: uw(o.service_lines)?.name || "",
+        deadline_fmt: o.deadline ? new Date(o.deadline).toLocaleDateString() : "",
+        delivery_time_fmt: o.delivery_time ? new Date(o.delivery_time).toLocaleString() : "",
+      };
+    }),
   },
   {
     id: "special-orders",
     title: "Special Orders Report",
-    description: "All special/review orders with spending breakdown",
+    description: "Review/fake orders with spending in USD and BDT",
     icon: Star,
     module: "special-orders",
-    apiUrl: "/api/special-orders?pageSize=500",
+    apiUrl: "/api/special-orders?pageSize=1000",
+    supportsDateFilter: true,
     columns: [
       { key: "order_number", header: "Order #" },
       { key: "order_date", header: "Date" },
       { key: "client_name", header: "Client" },
       { key: "platform_name", header: "Platform" },
       { key: "profile_name", header: "Profile" },
-      { key: "gross_amount", header: "Spent ($)", format: (v) => `$${Number(v).toFixed(2)}` },
-      { key: "net_amount", header: "Net Cost ($)", format: (v) => `$${Number(v).toFixed(2)}` },
+      { key: "gross_amount", header: "Spent USD ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "platform_charge", header: "Platform Fee ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "net_amount", header: "Net Cost ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
       { key: "status_name", header: "Status" },
       { key: "notes", header: "Notes" },
     ],
     dataExtractor: (data) => (data.data || []).map((o: any) => ({
       ...o,
-      platform_name: (Array.isArray(o.platforms) ? o.platforms[0] : o.platforms)?.name || "",
-      profile_name: (Array.isArray(o.platform_profiles) ? o.platform_profiles[0] : o.platform_profiles)?.name || "",
-      status_name: (Array.isArray(o.order_statuses) ? o.order_statuses[0] : o.order_statuses)?.name || "",
+      platform_name: uw(o.platforms)?.name || "",
+      profile_name: uw(o.platform_profiles)?.name || "",
+      status_name: uw(o.order_statuses)?.name || "",
     })),
   },
   {
     id: "revenue",
     title: "Revenue Report",
-    description: "Revenue breakdown by platform, profile, and employee",
+    description: "Revenue breakdown by platform, profile, employee with fee details",
     icon: DollarSign,
     module: "revenue",
-    apiUrl: "/api/orders?pageSize=500",
+    apiUrl: "/api/orders?pageSize=1000",
+    supportsDateFilter: true,
     columns: [
       { key: "order_number", header: "Order #" },
       { key: "order_date", header: "Date" },
-      { key: "client_name", header: "Client" },
       { key: "platform_name", header: "Platform" },
       { key: "profile_name", header: "Profile" },
       { key: "employee_name", header: "Employee" },
-      { key: "employee_id_col", header: "Emp ID" },
-      { key: "gross_amount", header: "Gross ($)", format: (v) => `$${Number(v).toFixed(2)}` },
-      { key: "platform_charge", header: "Fee ($)", format: (v) => `$${Number(v).toFixed(2)}` },
-      { key: "net_amount", header: "Net ($)", format: (v) => `$${Number(v).toFixed(2)}` },
+      { key: "employee_cid", header: "Emp ID" },
+      { key: "client_name", header: "Client" },
+      { key: "gross_amount", header: "Gross ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "platform_charge", header: "Platform Fee ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "net_amount", header: "Revenue ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
+      { key: "service_name", header: "Service" },
+      { key: "team_name", header: "Team" },
     ],
     dataExtractor: (data) => (data.data || []).map((o: any) => {
-      const emp = Array.isArray(o.employee) ? o.employee[0] : o.employee;
+      const emp = uw(o.employee);
       return {
         ...o,
-        platform_name: (Array.isArray(o.platforms) ? o.platforms[0] : o.platforms)?.name || "",
-        profile_name: (Array.isArray(o.platform_profiles) ? o.platform_profiles[0] : o.platform_profiles)?.name || "",
+        platform_name: uw(o.platforms)?.name || "",
+        profile_name: uw(o.platform_profiles)?.name || "",
         employee_name: emp?.name || "",
-        employee_id_col: emp?.company_id || "",
+        employee_cid: emp?.company_id || "",
+        service_name: uw(o.service_categories)?.name || "",
+        team_name: uw(o.teams)?.name || "",
       };
     }),
   },
   {
     id: "users",
     title: "Users Report",
-    description: "All users with roles, departments, and status",
+    description: "All users with company ID, roles, departments, and status",
     icon: Users,
     module: "users",
     apiUrl: "/api/users?pageSize=500",
+    supportsDateFilter: false,
     columns: [
       { key: "company_id", header: "Company ID" },
       { key: "name", header: "Name" },
@@ -139,29 +164,31 @@ const reportTypes: ReportType[] = [
   {
     id: "targets",
     title: "Targets Report",
-    description: "Employee targets with achievement rates",
+    description: "Employee revenue targets and achievement tracking",
     icon: Target,
     module: "targets",
     apiUrl: "/api/targets",
+    supportsDateFilter: false,
     columns: [
       { key: "user_name", header: "Employee" },
       { key: "period_type", header: "Period" },
       { key: "period_start", header: "Start" },
       { key: "period_end", header: "End" },
-      { key: "target_amount", header: "Target ($)", format: (v) => `$${Number(v).toFixed(2)}` },
+      { key: "target_amount", header: "Target ($)", format: (v) => `$${Number(v || 0).toFixed(2)}` },
     ],
-    dataExtractor: (data) => (data.data || []).map((t: any) => {
-      const u = Array.isArray(t.users) ? t.users[0] : t.users;
-      return { ...t, user_name: u?.name || "" };
-    }),
+    dataExtractor: (data) => (data.data || []).map((t: any) => ({
+      ...t,
+      user_name: uw(t.users)?.name || "",
+    })),
   },
   {
     id: "inventory",
     title: "Inventory Report",
-    description: "Technology inventory items with status and costs",
+    description: "Technology equipment inventory with costs and assignments",
     icon: Package,
     module: "inventory",
     apiUrl: "/api/inventory",
+    supportsDateFilter: false,
     columns: [
       { key: "item_name", header: "Item" },
       { key: "category", header: "Category" },
@@ -170,11 +197,55 @@ const reportTypes: ReportType[] = [
       { key: "cost", header: "Cost ($)", format: (v) => v ? `$${Number(v).toFixed(2)}` : "" },
       { key: "purchase_date", header: "Purchased" },
       { key: "assigned_name", header: "Assigned To" },
+      { key: "notes", header: "Notes" },
     ],
-    dataExtractor: (data) => (data.data || []).map((i: any) => {
-      const u = Array.isArray(i.users) ? i.users[0] : i.users;
-      return { ...i, assigned_name: u?.name || i.assigned_name || "" };
-    }),
+    dataExtractor: (data) => (data.data || []).map((i: any) => ({
+      ...i,
+      assigned_name: uw(i.users)?.name || "",
+    })),
+  },
+  {
+    id: "profiles",
+    title: "Platform Profiles Report",
+    description: "All platform profiles with URLs and status",
+    icon: UserCircle,
+    module: "profiles",
+    apiUrl: "/api/platform-profiles",
+    supportsDateFilter: false,
+    columns: [
+      { key: "name", header: "Profile Name" },
+      { key: "platform_name", header: "Platform" },
+      { key: "profile_url", header: "URL" },
+      { key: "description", header: "Description" },
+      { key: "is_active", header: "Status", format: (v) => v ? "Active" : "Disabled" },
+    ],
+    dataExtractor: (data) => (data.data || []).map((p: any) => ({
+      ...p,
+      platform_name: uw(p.platforms)?.name || "",
+    })),
+  },
+  {
+    id: "requisitions",
+    title: "Requisitions Report",
+    description: "Technology requisition requests with approval status",
+    icon: ClipboardList,
+    module: "requisitions",
+    apiUrl: "/api/requisitions",
+    supportsDateFilter: false,
+    columns: [
+      { key: "requester_name", header: "Requester" },
+      { key: "item_description", header: "Item" },
+      { key: "purpose", header: "Purpose" },
+      { key: "estimated_cost", header: "Est. Cost ($)", format: (v) => v ? `$${Number(v).toFixed(2)}` : "" },
+      { key: "urgency", header: "Urgency" },
+      { key: "status", header: "Status" },
+      { key: "review_notes", header: "Review Notes" },
+      { key: "created_at", header: "Submitted", format: (v) => v ? new Date(v).toLocaleDateString() : "" },
+    ],
+    dataExtractor: (data) => (data.data || []).map((r: any) => ({
+      ...r,
+      requester_name: uw(r.requester || r.users)?.name || "",
+    })),
   },
 ];
 
@@ -201,19 +272,25 @@ export default function ReportsPage() {
     setDownloading(true);
     try {
       let url = activeReport.apiUrl;
-      const params = new URLSearchParams();
-      if (startDate) params.set("start_date", startDate);
-      if (endDate) params.set("end_date", endDate);
-      if (params.toString()) url += (url.includes("?") ? "&" : "?") + params.toString();
+
+      // Apply date filter if supported and dates provided
+      if (activeReport.supportsDateFilter && (startDate || endDate)) {
+        const sep = url.includes("?") ? "&" : "?";
+        const params = new URLSearchParams();
+        if (startDate) params.set("start_date", startDate);
+        if (endDate) params.set("end_date", endDate);
+        url += sep + params.toString();
+      }
 
       const res = await fetch(url);
-      if (!res.ok) { toast.error("Failed to fetch data"); return; }
+      if (!res.ok) { toast.error("Failed to fetch data"); setDownloading(false); return; }
       const rawData = await res.json();
       const data = activeReport.dataExtractor(rawData);
 
-      if (data.length === 0) { toast.error("No data found for the selected criteria"); return; }
+      if (data.length === 0) { toast.error("No data found for the selected criteria"); setDownloading(false); return; }
 
-      const filename = `${activeReport.id}-report-${new Date().toISOString().split("T")[0]}`;
+      const dateSuffix = startDate && endDate ? `_${startDate}_to_${endDate}` : "";
+      const filename = `${activeReport.id}-report-${new Date().toISOString().split("T")[0]}${dateSuffix}`;
       await exportData(selectedFormat as "csv" | "xlsx" | "pdf" | "docx", data, activeReport.columns, filename, activeReport.title);
       toast.success(`${activeReport.title} exported as ${selectedFormat.toUpperCase()}`);
     } catch (err) {
@@ -230,21 +307,21 @@ export default function ReportsPage() {
       <PageHeader title="Reports" description="Generate and export reports in multiple formats" />
 
       {/* Report Type Selection */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
         {availableReports.map((rt) => (
           <Card
             key={rt.id}
             className={`cursor-pointer transition-all ${selectedReport === rt.id ? "border-primary ring-2 ring-primary/20 shadow-md" : "hover:border-primary/30 hover:shadow-sm"}`}
             onClick={() => setSelectedReport(rt.id)}
           >
-            <CardHeader className="pb-2">
+            <CardHeader className="pb-2 p-4">
               <div className="flex items-center gap-3">
-                <div className={`icon-box ${selectedReport === rt.id ? "icon-box-primary" : "bg-muted text-muted-foreground"}`} style={{ height: "2.5rem", width: "2.5rem" }}>
-                  <rt.icon className="h-5 w-5" />
+                <div className={`icon-box ${selectedReport === rt.id ? "icon-box-primary" : "bg-muted text-muted-foreground"}`} style={{ height: "2.25rem", width: "2.25rem" }}>
+                  <rt.icon className="h-4 w-4" />
                 </div>
-                <div>
-                  <CardTitle className="text-sm">{rt.title}</CardTitle>
-                  <CardDescription className="text-xs">{rt.description}</CardDescription>
+                <div className="min-w-0">
+                  <CardTitle className="text-sm truncate">{rt.title}</CardTitle>
+                  <CardDescription className="text-[11px] truncate">{rt.description}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -253,10 +330,13 @@ export default function ReportsPage() {
       </div>
 
       {/* Export Options */}
-      {selectedReport && (
+      {selectedReport && activeReport && (
         <Card className="shadow-sm">
           <CardHeader>
-            <CardTitle className="text-base">Export Options</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Export: {activeReport.title}</CardTitle>
+              <Badge variant="outline" className="text-xs">{activeReport.columns.length} columns</Badge>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {/* Format Selection */}
@@ -282,29 +362,40 @@ export default function ReportsPage() {
               </div>
             </div>
 
-            {/* Date Range */}
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="space-y-2">
-                <Label>Start Date (optional)</Label>
-                <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            {/* Date Range (only for reports that support it) */}
+            {activeReport.supportsDateFilter && (
+              <div className="grid gap-4 md:grid-cols-3">
+                <div className="space-y-2">
+                  <Label>Start Date (optional)</Label>
+                  <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+                </div>
+                <div className="space-y-2">
+                  <Label>End Date (optional)</Label>
+                  <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+                </div>
+                <div />
               </div>
-              <div className="space-y-2">
-                <Label>End Date (optional)</Label>
-                <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-              </div>
-              <div className="flex items-end">
-                <Button onClick={handleDownload} disabled={downloading} size="lg" className="w-full">
-                  {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
-                  Download {selectedFormat.toUpperCase()}
-                </Button>
-              </div>
+            )}
+
+            {/* Download */}
+            <div className="flex items-center gap-4">
+              <Button onClick={handleDownload} disabled={downloading} size="lg">
+                {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+                Download {selectedFormat.toUpperCase()}
+              </Button>
+              {activeReport.supportsDateFilter && !startDate && !endDate && (
+                <p className="text-xs text-muted-foreground">No date filter — exports all data</p>
+              )}
             </div>
 
-            {/* Preview info */}
+            {/* Column Preview */}
             <div className="rounded-lg bg-muted/50 p-4">
-              <p className="text-sm text-muted-foreground">
-                <strong>{activeReport?.title}</strong> will include {activeReport?.columns.length} columns: {activeReport?.columns.map((c) => c.header).join(", ")}
-              </p>
+              <p className="text-xs font-medium text-muted-foreground mb-2">Columns included:</p>
+              <div className="flex flex-wrap gap-1.5">
+                {activeReport.columns.map((c) => (
+                  <Badge key={c.key} variant="secondary" className="text-[10px]">{c.header}</Badge>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>

@@ -132,6 +132,14 @@ export default function RequisitionsPage() {
         )}
       </PageHeader>
 
+      {/* Summary Cards */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Total Requests</div><div className="text-2xl font-bold">{reqs.length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Pending</div><div className="text-2xl font-bold text-warning">{reqs.filter((r: Record<string, unknown>) => r.status === "pending").length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Approved</div><div className="text-2xl font-bold text-success">{reqs.filter((r: Record<string, unknown>) => r.status === "approved").length}</div></div>
+        <div className="stat-card"><div className="text-sm text-muted-foreground">Rejected</div><div className="text-2xl font-bold text-destructive">{reqs.filter((r: Record<string, unknown>) => r.status === "rejected").length}</div></div>
+      </div>
+
       <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v === "all" ? "" : (v || ""))}>
         <SelectTrigger className="w-40"><SelectValue placeholder="All Statuses" /></SelectTrigger>
         <SelectContent>

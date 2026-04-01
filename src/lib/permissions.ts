@@ -65,26 +65,6 @@ export async function checkPermission(
 }
 
 /**
- * Get the SQL filter condition based on data scope
- */
-export function getDataScopeFilter(
-  dataScope: DataScope,
-  userId: string,
-  fieldName = "assigned_to"
-): { column: string; value: string } | null {
-  switch (dataScope) {
-    case "all":
-      return null; // No filter
-    case "own":
-      return { column: fieldName, value: userId };
-    // team and department scopes require additional queries
-    // handled in individual API routes
-    default:
-      return { column: fieldName, value: userId };
-  }
-}
-
-/**
  * Get team member IDs for data scope filtering
  */
 export async function getTeamMemberIds(userId: string): Promise<string[]> {
@@ -154,13 +134,3 @@ export async function getFilteredUserIds(
   }
 }
 
-/**
- * Check if user has any permission for a module (used for sidebar visibility)
- */
-export async function hasModuleAccess(
-  userId: string,
-  module: string
-): Promise<boolean> {
-  const check = await checkPermission(userId, module, "view");
-  return check.allowed;
-}

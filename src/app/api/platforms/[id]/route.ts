@@ -9,6 +9,7 @@ import { z } from "zod";
 const schema = z.object({
   name: z.string().min(1).max(100).optional(),
   charge_percentage: z.number().min(0).max(100).optional(),
+  bdt_conversion_rate: z.number().min(0).optional(),
   is_active: z.boolean().optional(),
 });
 
