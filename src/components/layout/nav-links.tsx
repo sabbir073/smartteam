@@ -26,6 +26,7 @@ import {
   Settings,
   UserCircle,
   Star,
+  MessageCircle,
 } from "lucide-react";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -46,6 +47,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Settings,
   UserCircle,
   Star,
+  MessageCircle,
 };
 
 interface NavItem {
@@ -68,6 +70,7 @@ const navItems: NavItem[] = [
   { title: "Targets", href: "/targets", icon: "Target", module: "targets" },
   { title: "Revenue", href: "/revenue", icon: "DollarSign", module: "revenue" },
   { title: "Reports", href: "/reports", icon: "FileBarChart", module: "reports" },
+  { title: "Messages", href: "/messages", icon: "MessageCircle", module: "messages" },
   { title: "Requisitions", href: "/requisitions", icon: "ClipboardList", module: "requisitions" },
   { title: "Inventory", href: "/inventory", icon: "Package", module: "inventory" },
   { title: "Audit Logs", href: "/audit-logs", icon: "ScrollText", module: "audit-logs" },

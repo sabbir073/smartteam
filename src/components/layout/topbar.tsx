@@ -4,6 +4,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Separator } from "@/components/ui/separator";
 import { ThemeToggle } from "./theme-toggle";
 import { NotificationBell } from "./notification-bell";
+import { MessageIcon } from "@/components/messaging/message-icon";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -44,6 +45,7 @@ export function Topbar() {
       </Breadcrumb>
 
       <div className="flex items-center gap-1">
+        <MessageIcon />
         <NotificationBell />
         <ThemeToggle />
       </div>

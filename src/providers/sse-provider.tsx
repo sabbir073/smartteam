@@ -11,7 +11,7 @@ interface SSEContextType {
 
 const SSEContext = createContext<SSEContextType>({
   isConnected: false,
-  subscribe: () => () => {},
+  subscribe: (_eventType: string, _handler: (data: Record<string, unknown>) => void) => () => {},
 });
 
 export function SSEProvider({ children }: { children: React.ReactNode }) {
@@ -47,7 +47,7 @@ export function SSEProvider({ children }: { children: React.ReactNode }) {
     };
 
     // Listen for all event types
-    const eventTypes = ["notification", "order-update", "dashboard-refresh"];
+    const eventTypes = ["notification", "order-update", "dashboard-refresh", "new-message"];
     for (const type of eventTypes) {
       es.addEventListener(type, (event: MessageEvent) => {
         try {
